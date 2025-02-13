@@ -26,8 +26,13 @@ make install
 apt install -y build-essential curl libx11-dev libgl1-mesa-dev
 curl -O https://downloads.bellarender.com/bella_engine_sdk-24.6.0.tar.gz
 tar -xvf bella_engine_sdk-24.6.0.tar.gz -C bellasftp --strip-components=1
-cd bella_engine_sdk
+cd bellasftp
+sed -i 's/^OUTNAME\s*=.*/OUTNAME         =bellasftp/' makefile
 sed -i 's/^\(\s*\)\(-Werror\)/\1#\2/' makefile
+sed -i '/^\s*-lvulkan/i\\\
+        -lssh\\\n\
+        -lcurl' makefile
+sed -i 's/^OBJS\s*=.*/OBJS = bellasftp.o/' makefile
 ```
 
 **build bellasftp**
