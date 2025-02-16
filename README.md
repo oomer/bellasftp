@@ -5,6 +5,7 @@ A prototype of a libssh based sftp server with integrated Bella render engine
 > This is a prototype and not intended for production use.
 > It is not secure and should not be used in a production environment.
 > It is only intended to be used for development purposes.
+> Tested on a Ubuntu 22.04 server and MacOS client.
 
 ## Features
 
@@ -12,6 +13,7 @@ A prototype of a libssh based sftp server with integrated Bella render engine
 - upload .bsz file
 - download .png file
 - monitors render progress
+- [TODO] curl support for uploading and downloading files
 
 ## Usage
 
@@ -30,15 +32,25 @@ upload .bsz file
 put orange-juice.bsz
 ```
 
+start render ( sftp command override to start render, SFTP protocol has a SSH_FXP_EXTENSION but this requires client to support these features.)
+```
+mkdir render
+```
+
+monitor ( hijacked sftp command to monitor progress, SFTP protocoal has no mechanism for passing arbitrary text )
+```
+cd progress
+```
+
 download .png file ( server side name is hardcoded as oomer.png )
 ( client side name can be different )
 ```
 get orange-juice.png
 ```
 
+
 ## Build
 
-Tested on Ubuntu 22.04 LTS
 
 **get code**
 ```sh

@@ -216,17 +216,22 @@ void handle_client(ssh_session client_session, Engine engine) {
                         // sftp message outer loop,stay in this loop until client disconnects
                         while ((message = sftp_get_client_message(sftp))!= nullptr) { 
                             sftp_message_type = sftp_client_message_get_type(message); //type is opcode
-                            const char* sftp_filename_cstr = sftp_client_message_get_filename(message); //type is opcode
-                            std::string sftp_filename(sftp_filename_cstr);
-                            std::cout << "sftp_filename: " << sftp_filename << std::endl;
                             request_id = message->id;
                             std::cout << "request_id: " << request_id << std::endl;
                             switch (sftp_message_type) {
                                 case SSH_FXP_LSTAT: { 
+                                    const char* sftp_filename_cstr = sftp_client_message_get_filename(message); //type is opcode
+                                    if ( sftp_filename_cstr == nullptr ) {
+                                        std::cerr << "sftp_filename_cstr is nullptr" << std::endl;
+                                        sftp_reply_status(message, SSH_FX_FAILURE, "FAIL" );
+                                        break;
+                                    } else {
+                                        std::string sftp_filename(sftp_filename_cstr);
+                                        std::cout << "sftp_filename: " << sftp_filename << std::endl;
+                                    }
                                     std::cerr << "SSH_FXP_LSTAT" <<  std::endl;
                                     sftp_attributes my_foo_attrib = (sftp_attributes)malloc(sizeof(struct sftp_attributes_struct)); // Allocate memory using malloc
                                     if (my_foo_attrib == NULL) { // Check for allocation failure!
-                                        std::cerr << "Memory allocation failed for sftp_attributes." << std::endl;
                                         return; // Exit function on allocation error
                                     }
                                     memset(my_foo_attrib, 0, sizeof(struct sftp_attributes_struct)); // Initialize to 0
@@ -237,7 +242,6 @@ void handle_client(ssh_session client_session, Engine engine) {
                                     my_foo_attrib->permissions = 0644;
                                     my_foo_attrib->atime = 1713238400;
                                     my_foo_attrib->mtime = 1713238400;
-                                    sftp_reply_attr(message, my_foo_attrib );
 
                                     if (sftp_filename == "./progress") {
                                         std::ifstream log_file("logfile.txt");
@@ -250,6 +254,8 @@ void handle_client(ssh_session client_session, Engine engine) {
                                             }
                                             log_file.close();
                                         }
+                                    } else {
+                                        sftp_reply_attr(message, my_foo_attrib );
                                     }
                                     free(my_foo_attrib);
 
@@ -291,8 +297,15 @@ void handle_client(ssh_session client_session, Engine engine) {
                                 }
 
                                 case SSH_FXP_STAT: { // only used for read
-                                    //const char* bella_file = "/tmp/oj.bsz";
-                                    std::cout << "SFTP_FXP_STAT" <<  std::endl;
+                                    /*const char* sftp_filename_cstr = sftp_client_message_get_filename(message); //type is opcode
+                                    if ( sftp_filename_cstr == nullptr ) {
+                                        std::cerr << "sftp_filename_cstr is nullptr" << std::endl;
+                                        sftp_reply_status(message, SSH_FX_FAILURE, "FAIL" );
+                                        break;
+                                    } else {
+                                        std::string sftp_filename(sftp_filename_cstr);
+                                        std::cout << "sftp_filename: " << sftp_filename << std::endl;
+                                    }*/
                                     struct stat file_stat;
                                     if ( lstat( read_file.c_str(), &file_stat ) == 0 ) {
                                         sftp_attributes bella_attrib = (sftp_attributes)malloc(sizeof(struct sftp_attributes_struct)); // Allocate memory using malloc
@@ -340,7 +353,6 @@ void handle_client(ssh_session client_session, Engine engine) {
 
                                 case SSH_FXP_CLOSE: {
                                     std::cout << "SSH_FXP_CLOSE" << std::endl;
-                                    const char* bella_file = sftp_client_message_get_filename(message);
                                     if ((message_flags & flags_for_write ) == flags_for_write) { // handle put
                                         binaryOutputFile.close();
                                     } else if ( (message_flags & flags_for_read ) == flags_for_read) { // handle get
@@ -361,7 +373,6 @@ void handle_client(ssh_session client_session, Engine engine) {
                                                 sftp_reply_status(message, SSH_FX_FAILURE, "FAIL" );
                                                 break;
                                         }
-                                        //sftp_reply_handle( message, my_handle ); // handshake client ssh_string handle to open file
                                     } else if  ( ( message_flags & SSH_FXF_READ ) != 0 ) { // handle get
                                         std::cout << "  SSH_FXF_READ flag is SET (Client intends to read/download)." << std::endl;
                                         binaryInputFile.open(read_file, std::ios::binary);// for reading
@@ -370,11 +381,11 @@ void handle_client(ssh_session client_session, Engine engine) {
                                             sftp_reply_status(message, SSH_FX_FAILURE, "FAIL" );
                                             break;
                                         }
-                                        //sftp_reply_handle( message, my_handle); // handshake client ssh_string handle to open file
                                     }
                                     my_handle = ssh_string_from_char("foo foo"); //[TODO] currently not a uuid because only one sftp client is allowed
                                     // Since multiple clients would require a uuid, this is a placeholder for now
                                     sftp_reply_handle( message, my_handle ); // handshake client ssh_string handle to open file
+                                    std::cout << "END SSH_FXP_OPEN" << std::endl;
                                     break;
                                 }
 
@@ -388,25 +399,24 @@ void handle_client(ssh_session client_session, Engine engine) {
                                     const char* resolved_path = ".";
                                     std::cout << "Resolved path: " << resolved_path << std::endl;
 
-
-                                    if ( resolved_path != nullptr ) {
-                                        struct stat file_stat;
-                                        if (stat(resolved_path, &file_stat) == 0) { // Call stat
-                                            // stat successful!
-                                            std::cout << "REALPATH stat successful!" << std::endl;
-                                            sftp_attributes my_sftp_attrib = (sftp_attributes)malloc(sizeof(struct sftp_attributes_struct));
-                                            if(my_sftp_attrib == NULL) {
-                                                std::cerr << "Memory allocation failed for sftp_attributes." << std::endl;
-                                                return;
-                                            }
-                                            memset(my_sftp_attrib, 0, sizeof(struct sftp_attributes_struct)); // Initialize to 0    
-                                            my_sftp_attrib->flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_PERMISSIONS | SSH_FILEXFER_ATTR_ACMODTIME | SSH_FILEXFER_ATTR_UIDGID;
-                                            my_sftp_attrib->size = 0; // Size is not relevant for a directory
-                                            my_sftp_attrib->uid = file_stat.st_uid;
-                                            my_sftp_attrib->gid = file_stat.st_gid;
-                                            my_sftp_attrib->permissions = file_stat.st_mode;
-                                            my_sftp_attrib->atime = file_stat.st_atime;
-                                            my_sftp_attrib->mtime = file_stat.st_mtime;
+                                    struct stat file_stat;
+                                    if (stat(resolved_path, &file_stat) == 0) { // Call stat
+                                        // stat successful!
+                                        std::cout << "REALPATH stat successful!" << std::endl;
+                                        sftp_attributes my_sftp_attrib = (sftp_attributes)malloc(sizeof(struct sftp_attributes_struct));
+                                        if(my_sftp_attrib == NULL) {
+                                            std::cerr << "Memory allocation failed for sftp_attributes." << std::endl;
+                                            return;
+                                        }
+                                        memset(my_sftp_attrib, 0, sizeof(struct sftp_attributes_struct)); // Initialize to 0    
+                                        my_sftp_attrib->flags = SSH_FILEXFER_ATTR_SIZE | SSH_FILEXFER_ATTR_PERMISSIONS | SSH_FILEXFER_ATTR_ACMODTIME | SSH_FILEXFER_ATTR_UIDGID;
+                                        my_sftp_attrib->size = 0; // Size is not relevant for a directory
+                                        my_sftp_attrib->uid = file_stat.st_uid;
+                                        my_sftp_attrib->gid = file_stat.st_gid;
+                                        my_sftp_attrib->permissions = file_stat.st_mode;
+                                        my_sftp_attrib->atime = file_stat.st_atime;
+                                        my_sftp_attrib->mtime = file_stat.st_mtime;
+                                        if (client_filename!= nullptr) {
                                             std::string sftp_filename(client_filename);
                                             if (sftp_filename == "./progress") {
                                                 std::cout << "REALPATH progress" << std::endl;
@@ -420,15 +430,13 @@ void handle_client(ssh_session client_session, Engine engine) {
                                                         sftp_reply_name(message, "Arbitarty text", my_sftp_attrib); // Pass the address of attr
                                                     }
                                                     log_file.close();
+                                                    break;
                                                 }
-                                            } else {
-                                                sftp_reply_name(message, resolved_path, my_sftp_attrib); // Pass the address of attr
-                                                std::cout << "REALPATH sftp_reply_name" << std::endl;
-                                                free(my_sftp_attrib); // Free the allocated memory
                                             }
                                         }
-                                    } else {
-                                        sftp_reply_status(message, SSH_FX_NO_SUCH_FILE, "Path not found");
+                                        sftp_reply_name(message, resolved_path, my_sftp_attrib); // Pass the address of attr
+                                        std::cout << "REALPATH sftp_reply_name" << std::endl;
+                                        free(my_sftp_attrib); // Free the allocated memory
                                     }
                                     break;
                                 }
