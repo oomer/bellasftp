@@ -224,7 +224,6 @@ void handle_client(ssh_session client_session, Engine engine) {
                                     if ( sftp_filename_cstr == nullptr ) {
                                         std::cerr << "sftp_filename_cstr is nullptr" << std::endl;
                                         sftp_reply_status(message, SSH_FX_FAILURE, "FAIL" );
-                                        break;
                                     } else {
                                         std::string sftp_filename(sftp_filename_cstr);
                                         std::cout << "sftp_filename: " << sftp_filename << std::endl;
