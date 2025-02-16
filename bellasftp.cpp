@@ -161,7 +161,7 @@ size_t write_data(void* buffer, size_t size, size_t nmemb, std::ostream* stream)
 void handle_client(ssh_session client_session, Engine engine) {
     ssh_message message; // bridge class to go from developer friendly to efficient wire format
     while ((message = ssh_message_get(client_session))) { // client handler session loop post authentication
-        
+
         /*Channel Handling: SSH servers need to be able to handle different types of channel requests. 
         This if statement allows the server to specifically identify and handle requests for session channels.
         Session channels are the most common type of channel. 
@@ -459,9 +459,10 @@ void handle_client(ssh_session client_session, Engine engine) {
                         }
                     }
                 }
-                ssh_message_free(message); // Free the message (if it wasn't already freed in the shell request case)
+                //break;
+                //ssh_message_free(message); // Free the message (if it wasn't already freed in the shell request case)
             }
-            if (current_ssh_type == PTY) {
+            /*if (current_ssh_type == PTY) {
                 const char* greeting = "Bella Server\r\n";
                 char buffer[8]; // buffer to hold keystrokes
                 std::string line_buffer; // Buffer to accumulate a line
@@ -532,12 +533,13 @@ void handle_client(ssh_session client_session, Engine engine) {
                             } // End of switch
                         } // End of else (regular character handling)
                     } 
-                }
-            } else if (current_ssh_type == SFTP) {
-                std::cout << "sftp " <<  std::endl;
-            }
-         }
+                }*/
+            //} else if (current_ssh_type == SFTP) {
+            //    std::cout << "sftp " <<  std::endl;
+            //}
+        }
         ssh_message_free(message);
+        //break;
     }
 }
 
@@ -620,6 +622,7 @@ int DL_main(Args& args)
 
     std::cout << "SSH server listening on port " << BINDPORT << std::endl;
     while (true) {
+        std::cout << "SSH server listening ..." << std::endl;
         session = ssh_new();
         if (ssh_bind_accept(sshbind, session) < 0) {
             std::cerr << "Error accepting connection: " << ssh_get_error(sshbind) << std::endl;
