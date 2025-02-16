@@ -79,7 +79,7 @@ curl -O https://downloads.bellarender.com/bella_engine_sdk-24.6.0.tar.gz
 tar -xvf bella_engine_sdk-24.6.0.tar.gz -C bellasftp --strip-components=1
 cd bellasftp
 sed -i 's/^OUTNAME\s*=.*/OUTNAME         =bellasftp/' makefile
-sed -i 's/^\(\s*\)\(-Werror\)/\1#\2/' makefile
+sed -i '/^[ \t]*-Werror/d' makefile
 sed -i '/^\s*-lvulkan/i\\-lssh\\\n-lcurl\\' makefile
 sed -i 's/^OBJS\s*=.*/OBJS = bellasftp.o/' makefile
 ```
